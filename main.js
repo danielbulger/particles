@@ -43,8 +43,6 @@ class Particles {
 
 			this.positions[i] += (step * this.velocity[i]);
 
-			console.log(this.positions[i]);
-
 			if(this.positions[i] <= -1 || this.positions[i] >= 1) {
 				this.velocity[i] *= -1;
 			}
