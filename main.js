@@ -1,3 +1,68 @@
+class Particles {
+
+	constructor(count, width, height) {
+
+		this.positions = new Float32Array(count * 2);
+
+		this.colours = new Float32Array(count * 4);
+
+		this.velocity = new Float32Array(count * 2);
+
+		this.count = count;
+
+		this.width = width;
+
+		this.height = height;
+
+		this.initialise();
+	}
+
+	initialise() {
+
+		for (let i = 0; i < this.count; ++i) {
+
+			this.positions[i * 2] = Math.random() * 2 - 1;
+
+			this.positions[(i * 2) + 1] = Math.random() * 2 - 1;
+
+			for (let k = 0; k < 4; ++k) {
+				this.colours[(i * 4) + k] = Math.random();
+			}
+
+			this.velocity[i * 2] = 2 * Math.random() - 1;
+
+			this.velocity[(i * 2) + 1] = 2 * Math.random() - 1;
+		}
+	}
+
+	update() {
+
+		const step = 1 / 33;
+
+		for (let i = 0; i < this.positions.length; ++i) {
+
+			this.positions[i] += (step * this.velocity[i]);
+
+			console.log(this.positions[i]);
+
+			if(this.positions[i] <= -1 || this.positions[i] >= 1) {
+				this.velocity[i] *= -1;
+			}
+
+		}
+
+	}
+
+	getPositions() {
+		return this.positions;
+	}
+
+	getColours() {
+		return this.colours;
+	}
+
+}
+
 function main() {
 
 	const canvas = document.getElementById('canvas');
@@ -16,28 +81,24 @@ function main() {
 
 	const height = canvas.height = window.innerHeight;
 
-	const particles = 1024;
+	const particleCount = 1024;
 
-	const [positionData, positionBuffer] =  makePositionBuffer(gl, particles, width, height);
-
-	const [colourData, colourBuffer] = makeColourBuffer(gl, particles);
+	const particles = new Particles(particleCount, width, height);
 
 	const renderContext = {
 		width: width,
 
 		height: height,
 
-		particles: particles,
+		particles: particleCount,
 
 		program: util.getProgram(gl, 'vertex-shader', 'fragment-shader'),
 
-		positionBuffer: positionBuffer,
+		buffers: {
+			position: gl.createBuffer(),
 
-		positionData: positionData,
-
-		colourData: colourData,
-
-		colourBuffer: colourBuffer
+			colour: gl.createBuffer()
+		}
 	};
 
 	gl.disable(gl.DEPTH_TEST);
@@ -50,50 +111,11 @@ function main() {
 
 	gl.viewport(0, 0, width, height);
 
-	update(gl, renderContext);
+	update(particles, gl, renderContext);
 
 }
 
-function makeColourBuffer(gl, count) {
-
-	const data = new Float32Array(count * 4);
-
-	for(let i = 0; i < data.length; ++i) {
-		data[i] = Math.random();
-	}
-
-	const buffer = gl.createBuffer();
-
-	gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-
-	gl.bufferData(gl.ARRAY_BUFFER, data, gl.DYNAMIC_DRAW);
-
-	return [data, buffer];
-
-}
-
-function makePositionBuffer(gl, count, width, height) {
-
-	// * 2 as we store the x/y positions.
-	const data = new Float32Array(count * 2);
-
-	for (let i = 0; i < data.length; i += 1) {
-		data[i] = Math.floor(Math.random() * width);
-
-		data[i + 1] = Math.floor(Math.random() * height);
-	}
-
-	const buffer = gl.createBuffer();
-
-	gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-
-	gl.bufferData(gl.ARRAY_BUFFER, data, gl.DYNAMIC_DRAW);
-
-	return [data, buffer];
-
-}
-
-function render(gl, renderContext) {
+function render(particles, gl, renderContext) {
 
 	gl.clear(gl.COLOR_BUFFER_BIT);
 
@@ -107,40 +129,35 @@ function render(gl, renderContext) {
 
 	gl.enableVertexAttribArray(positionAttribute);
 
-	for (let i = 0; i < renderContext.positionData.length; ++i) {
-		renderContext.positionData[i] = (2 * Math.random()) - 1;
-	}
+	gl.bindBuffer(gl.ARRAY_BUFFER, renderContext.buffers.position);
 
-	gl.bindBuffer(gl.ARRAY_BUFFER, renderContext.positionBuffer);
-
-	gl.bufferData(gl.ARRAY_BUFFER, renderContext.positionData, gl.DYNAMIC_DRAW);
+	gl.bufferData(gl.ARRAY_BUFFER, particles.getPositions(), gl.DYNAMIC_DRAW);
 
 	gl.vertexAttribPointer(positionAttribute, 2, gl.FLOAT, false, 0, 0);
 
 	const colourAttribute = gl.getAttribLocation(renderContext.program, 'a_colour');
 
-	for (let i = 0; i < renderContext.colourBuffer.length; ++i) {
-		renderContext.colourData[i] = Math.random();
-	}
-
 	gl.enableVertexAttribArray(colourAttribute);
 
-	gl.bindBuffer(gl.ARRAY_BUFFER, renderContext.colourBuffer);
+	gl.bindBuffer(gl.ARRAY_BUFFER, renderContext.buffers.colour);
 
-	gl.bufferData(gl.ARRAY_BUFFER, renderContext.colourData, gl.DYNAMIC_DRAW);
+	gl.bufferData(gl.ARRAY_BUFFER, particles.getColours(), gl.DYNAMIC_DRAW);
 
 	gl.vertexAttribPointer(colourAttribute, 4, gl.FLOAT, false, 0, 0);
 
 	gl.drawArrays(gl.POINTS, 0, renderContext.particles);
 }
 
-function update(gl, renderContext) {
-	render(gl, renderContext);
+function update(particles, gl, renderContext) {
+
+	particles.update();
+
+	render(particles, gl, renderContext);
 
 	gl.flush();
 
 	requestAnimationFrame(function () {
-		update(gl, renderContext);
+		update(particles, gl, renderContext);
 	});
 }
 
