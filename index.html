@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<title>Particles</title>
+
+	<style>
+		html, body, canvas {
+			position: absolute;
+			top: 0;
+			left: 0;
+			padding: 0;
+			margin: 0;
+			width: 100vw;
+			height: 100vh;
+		}
+	</style>
+</head>
+
+<body>
+
+	<canvas id="canvas"></canvas>
+
+	<script type="shader/x-vertex" id="vertex-shader">
+
+		uniform vec2 v_resolution;
+
+		attribute vec2 a_position;
+
+		attribute vec4 a_colour;
+
+		varying vec4 v_colour;
+
+		void main() {
+
+			v_colour = a_colour;
+
+			vec2 position = (a_position / v_resolution) - 1.0;
+
+			gl_Position = vec4(a_position, 0, 1.0);
+
+			gl_PointSize = 2.0;
+
+		}
+
+	</script>
+
+	<script type="shader/x-fragment" id="fragment-shader">
+
+		precision mediump float;
+
+		varying vec4 v_colour;
+
+		void main() {
+			gl_FragColor = v_colour;
+		}
+
+	</script>
+
+	<script src="util.js"></script>
+
+	<script src="main.js"></script>
+
+</body>
+
+</html>
