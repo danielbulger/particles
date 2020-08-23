@@ -1,3 +1,20 @@
+class Physics {
+
+	constructor(gravity, drag) {
+		this.gravity = gravity;
+
+		this.drag = drag;
+	}
+
+	getGravity() {
+		return this.gravity;
+	}
+
+	getDrag() {
+		return this.drag;
+	}
+}
+
 class Particles {
 
 	constructor(count, width, height) {
@@ -7,6 +24,10 @@ class Particles {
 		this.colours = new Float32Array(count * 4);
 
 		this.velocity = new Float32Array(count * 2);
+
+		this.mass = new Float32Array(count);
+
+		this.forces = new Float32Array(count * 2);
 
 		this.count = count;
 
@@ -21,31 +42,37 @@ class Particles {
 
 		for (let i = 0; i < this.count; ++i) {
 
-			this.positions[i * 2] = Math.random() * 2 - 1;
+			this.mass[i] = Math.random();
 
-			this.positions[(i * 2) + 1] = Math.random() * 2 - 1;
+			this.positions[i * 2] = Math.random() * this.width;
+
+			this.positions[(i * 2) + 1] = Math.random() * this.height;
 
 			for (let k = 0; k < 4; ++k) {
 				this.colours[(i * 4) + k] = Math.random();
 			}
 
-			this.velocity[i * 2] = 2 * Math.random() - 1;
+			this.velocity[i * 2] = 2 * Math.random();
 
-			this.velocity[(i * 2) + 1] = 2 * Math.random() - 1;
+			this.velocity[(i * 2) + 1] = 2 * Math.random();
 		}
 	}
 
-	update() {
+	update(physics) {
 
 		const step = 1 / 33;
 
+		for (let i = 0; i < this.count; ++i) {
+			this.forces[(i * 2)] = physics.getDrag();
+
+			this.forces[(i * 2) + 1] = (physics.getGravity() * this.mass[i]) - (physics.getDrag());
+		}
+
 		for (let i = 0; i < this.positions.length; ++i) {
 
-			this.positions[i] += (step * this.velocity[i]);
+			this.velocity[i] += this.forces[i];
 
-			if(this.positions[i] <= -1 || this.positions[i] >= 1) {
-				this.velocity[i] *= -1;
-			}
+			this.positions[i] += (step * this.velocity[i]);
 
 		}
 
@@ -79,9 +106,11 @@ function main() {
 
 	const height = canvas.height = window.innerHeight;
 
-	const particleCount = 1024;
+	const particleCount = 1024 ** 2;
 
 	const particles = new Particles(particleCount, width, height);
+
+	const physics = new Physics(-9.6, 0.5);
 
 	const renderContext = {
 		width: width,
@@ -109,7 +138,7 @@ function main() {
 
 	gl.viewport(0, 0, width, height);
 
-	update(particles, gl, renderContext);
+	update(particles, physics, gl, renderContext);
 
 }
 
@@ -146,16 +175,16 @@ function render(particles, gl, renderContext) {
 	gl.drawArrays(gl.POINTS, 0, renderContext.particles);
 }
 
-function update(particles, gl, renderContext) {
+function update(particles, physics, gl, renderContext) {
 
-	particles.update();
+	particles.update(physics);
 
 	render(particles, gl, renderContext);
 
 	gl.flush();
 
 	requestAnimationFrame(function () {
-		update(particles, gl, renderContext);
+		update(particles, physics, gl, renderContext);
 	});
 }
 
