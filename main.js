@@ -63,16 +63,16 @@ class Particles {
 		const step = 1 / 33;
 
 		for (let i = 0; i < this.count; ++i) {
-			this.forces[(i * 2)] = physics.getDrag();
+			this.forces[(i * 2)] = 0;
 
-			this.forces[(i * 2) + 1] = (physics.getGravity() * this.mass[i]) - (physics.getDrag());
+			this.forces[(i * 2) + 1] = (physics.getGravity() * this.mass[i]);
 		}
 
 		for (let i = 0; i < this.positions.length; ++i) {
 
 			this.velocity[i] += this.forces[i];
 
-			this.positions[i] += (step * this.velocity[i]);
+			this.positions[i] += (step * (this.velocity[i] * physics.getDrag()));
 
 		}
 
