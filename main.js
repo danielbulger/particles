@@ -15,6 +15,91 @@ class Physics {
 	}
 }
 
+class Attractors {
+
+	constructor(count, width, height) {
+
+		this.count = count;
+
+		this.positions = new Float32Array(count * 2);
+
+		this.radius = new Float32Array(count);
+
+		this.force = new Float32Array(count);
+
+		this.initialise(width, height);
+	}
+
+	initialise(width, height) {
+
+		for (let i = 0; i < this.count; ++i) {
+
+			this.positions[i] = Math.random() * width;
+
+			this.positions[i + 1] = Math.random() * height;
+
+			this.radius[i] = Math.random() * 100;
+
+			this.force[i] = Math.random() * 150;
+
+		}
+
+	}
+
+	update(particles) {
+
+		const particlePositions = particles.getPositions();
+
+		for (let p = 0; p < particles.getCount(); ++p) {
+
+			for (let i = 0; i < this.count; ++i) {
+
+				const dist = this.distance(i, particlePositions[p], particlePositions[p + 1]);
+
+				if (dist > this.radius[i]) {
+					continue;
+				}
+
+				const direction = util.toUnitVector(
+					particlePositions[p] - this.positions[i],
+					particlePositions[p + 1] - this.positions[i + 1]
+				);
+
+				util.multiply(direction, dist);
+
+				util.multiply(direction, this.force[i]);
+
+				util.multiply(direction, 1 - (dist / this.radius[i]));
+
+				particles.forces[p] -= direction[0];
+
+				particles.forces[p + 1] -= direction[1];
+
+			}
+
+		}
+
+	}
+
+	distance(index, positionX, positionY) {
+		const p1 = Math.pow(
+			this.positions[index] - this.positions[index + 1], 2
+		);
+
+		const p2 = Math.pow(positionX - positionY, 2);
+
+		return Math.hypot(p1, p2);
+	}
+
+	getCount() {
+		return this.count;
+	}
+
+	getPositions() {
+		return this.positions;
+	}
+}
+
 class Particles {
 
 	constructor(count, width, height) {
@@ -42,7 +127,7 @@ class Particles {
 
 		for (let i = 0; i < this.count; ++i) {
 
-			this.mass[i] = Math.random();
+			this.mass[i] = Math.max(0.01, Math.random());
 
 			this.positions[i * 2] = Math.random() * this.width;
 
@@ -58,24 +143,38 @@ class Particles {
 		}
 	}
 
-	update(physics) {
+	update(physics, attractors) {
 
 		const step = 1 / 33;
 
 		for (let i = 0; i < this.count; ++i) {
+
 			this.forces[(i * 2)] = 0;
 
 			this.forces[(i * 2) + 1] = (physics.getGravity() * this.mass[i]);
+
 		}
+
+		attractors.update(this);
 
 		for (let i = 0; i < this.positions.length; ++i) {
 
 			this.velocity[i] += this.forces[i];
 
 			this.positions[i] += (step * (this.velocity[i] * physics.getDrag()));
-
 		}
 
+		for (let i = 0; i < this.count; ++i) {
+
+			this.positions[(i * 2)] = util.wrap(this.positions[i * 2], 0, this.width);
+
+			this.positions[(i * 2) + 1] = util.wrap(this.positions[(i * 2) + 1], 0, this.height);
+		}
+
+	}
+
+	getCount() {
+		return this.count;
 	}
 
 	getPositions() {
@@ -106,11 +205,13 @@ function main() {
 
 	const height = canvas.height = window.innerHeight;
 
-	const particleCount = 1024 ** 2;
+	const particleCount = 50000;
 
 	const particles = new Particles(particleCount, width, height);
 
 	const physics = new Physics(-9.6, 0.5);
+
+	const attractors = new Attractors(100, width, height);
 
 	const renderContext = {
 		width: width,
@@ -138,7 +239,7 @@ function main() {
 
 	gl.viewport(0, 0, width, height);
 
-	update(particles, physics, gl, renderContext);
+	update(particles, physics, attractors, gl, renderContext);
 
 }
 
@@ -175,16 +276,16 @@ function render(particles, gl, renderContext) {
 	gl.drawArrays(gl.POINTS, 0, renderContext.particles);
 }
 
-function update(particles, physics, gl, renderContext) {
+function update(particles, physics, attractors, gl, renderContext) {
 
-	particles.update(physics);
+	particles.update(physics, attractors);
 
 	render(particles, gl, renderContext);
 
 	gl.flush();
 
 	requestAnimationFrame(function () {
-		update(particles, physics, gl, renderContext);
+		update(particles, physics, attractors, gl, renderContext);
 	});
 }
 
