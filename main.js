@@ -1,292 +1,208 @@
-class Physics {
+/**
+ * Make a texture from the given data.
+ * @param gl The WebGL context
+ * @param dimension The power of 2 dimension for the texture.
+ * @param data The data to pack into the texture.
+ * @returns {WebGLTexture} The created texture.
+ */
+function makeDataTexture(gl, dimension, data) {
+    const texture = gl.createTexture();
 
-	constructor(gravity, drag) {
-		this.gravity = gravity;
+    gl.bindTexture(gl.TEXTURE_2D, texture);
 
-		this.drag = drag;
-	}
+    gl.texImage2D(
+        gl.TEXTURE_2D,
+        0,
+        gl.RGBA,
+        dimension,
+        dimension,
+        0,
+        gl.RGBA,
+        gl.FLOAT,
+        data
+    );
 
-	getGravity() {
-		return this.gravity;
-	}
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
 
-	getDrag() {
-		return this.drag;
-	}
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+    return texture;
 }
 
-class Attractors {
+/**
+ * Generates a WebGLBuffer that contains the index positions of the particles.
+ * These indexes are used to lookup the particle data within the textures.
+ * @param gl The WebGL context.
+ * @param count The total number of particles
+ * @returns {WebGLBuffer} A WebGLBuffer that contains the x/y texture position of each particle
+ */
+function generateParticleIndex(gl, count) {
 
-	constructor(count, width, height) {
+    const data = new Float32Array(count * 2);
 
-		this.count = count;
+    const rowLength = Math.sqrt(count);
 
-		this.positions = new Float32Array(count * 2);
+    const step = 1 / rowLength;
 
-		this.radius = new Float32Array(count);
+    for (let i = 0; i < count; ++i) {
 
-		this.force = new Float32Array(count);
+        const block = i * 2;
 
-		this.initialise(width, height);
-	}
+        data[block] = step * Math.floor(i % rowLength);
 
-	initialise(width, height) {
+        data[block + 1] = step * (Math.floor(i / rowLength));
+    }
 
-		for (let i = 0; i < this.count; ++i) {
+    const buffer = gl.createBuffer();
 
-			this.positions[i] = Math.random() * width;
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
 
-			this.positions[i + 1] = Math.random() * height;
+    gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
 
-			this.radius[i] = Math.random() * 100;
-
-			this.force[i] = Math.random() * 150;
-
-		}
-
-	}
-
-	update(particles) {
-
-		const particlePositions = particles.getPositions();
-
-		for (let p = 0; p < particles.getCount(); ++p) {
-
-			for (let i = 0; i < this.count; ++i) {
-
-				const dist = this.distance(i, particlePositions[p], particlePositions[p + 1]);
-
-				if (dist > this.radius[i]) {
-					continue;
-				}
-
-				const direction = util.toUnitVector(
-					particlePositions[p] - this.positions[i],
-					particlePositions[p + 1] - this.positions[i + 1]
-				);
-
-				util.multiply(direction, dist);
-
-				util.multiply(direction, this.force[i]);
-
-				util.multiply(direction, 1 - (dist / this.radius[i]));
-
-				particles.forces[p] -= direction[0];
-
-				particles.forces[p + 1] -= direction[1];
-
-			}
-
-		}
-
-	}
-
-	distance(index, positionX, positionY) {
-		const p1 = Math.pow(
-			this.positions[index] - this.positions[index + 1], 2
-		);
-
-		const p2 = Math.pow(positionX - positionY, 2);
-
-		return Math.hypot(p1, p2);
-	}
-
-	getCount() {
-		return this.count;
-	}
-
-	getPositions() {
-		return this.positions;
-	}
+    return buffer;
 }
 
-class Particles {
+/**
+ * Generates the particle x position, y position and point size.
+ * @param count The number of particles to generate the data for.
+ * @param width The width of the grid.
+ * @param height The height of the grid.
+ * @returns {Float32Array} An array containing the particle data.
+ */
+function generateParticleData(count, width, height) {
 
-	constructor(count, width, height) {
+    const buffer = new Float32Array(count * 4);
 
-		this.positions = new Float32Array(count * 2);
+    for (let i = 0; i < count; ++i) {
+        const block = i * 4;
 
-		this.colours = new Float32Array(count * 4);
+        // The particle x position
+        buffer[block] = Math.random() * width;
 
-		this.velocity = new Float32Array(count * 2);
+        // The particle y position
+        buffer[block + 1] = Math.random() * height;
 
-		this.mass = new Float32Array(count);
+        // The particle point size
+        buffer[block + 2] = 2 ** (Math.floor(Math.random() * 3) + 1);
 
-		this.forces = new Float32Array(count * 2);
+        // dummy for now
+        buffer[block + 3] = 0;
+    }
 
-		this.count = count;
+    return buffer;
+}
 
-		this.width = width;
+function render(gl, renderInfo) {
 
-		this.height = height;
+    gl.clear(gl.COLOR_BUFFER_BIT);
 
-		this.initialise();
-	}
+    gl.useProgram(renderInfo.program);
 
-	initialise() {
+    gl.uniform2f(
+        renderInfo.uniforms.resolution,
+        renderInfo.width,
+        renderInfo.height
+    );
 
-		for (let i = 0; i < this.count; ++i) {
+    gl.enableVertexAttribArray(renderInfo.attributes.index);
 
-			this.mass[i] = Math.max(0.01, Math.random());
+    gl.bindBuffer(gl.ARRAY_BUFFER, renderInfo.buffers.index);
 
-			this.positions[i * 2] = Math.random() * this.width;
+    gl.vertexAttribPointer(
+        renderInfo.attributes.index,
+        2,
+        gl.FLOAT,
+        false,
+        0,
+        0
+    );
 
-			this.positions[(i * 2) + 1] = Math.random() * this.height;
+    gl.activeTexture(gl.TEXTURE0);
 
-			for (let k = 0; k < 4; ++k) {
-				this.colours[(i * 4) + k] = Math.random();
-			}
+    gl.bindTexture(gl.TEXTURE_2D, renderInfo.textures.particles);
 
-			this.velocity[i * 2] = 2 * Math.random();
+    gl.uniform1i(renderInfo.uniforms.particles, 0);
 
-			this.velocity[(i * 2) + 1] = 2 * Math.random();
-		}
-	}
+    gl.drawArrays(gl.POINTS, 0, renderInfo.particles);
 
-	update(physics, attractors) {
-
-		const step = 1 / 33;
-
-		for (let i = 0; i < this.count; ++i) {
-
-			this.forces[(i * 2)] = 0;
-
-			this.forces[(i * 2) + 1] = (physics.getGravity() * this.mass[i]);
-
-		}
-
-		attractors.update(this);
-
-		for (let i = 0; i < this.positions.length; ++i) {
-
-			this.velocity[i] += this.forces[i];
-
-			this.positions[i] += (step * (this.velocity[i] * physics.getDrag()));
-		}
-
-		for (let i = 0; i < this.count; ++i) {
-
-			this.positions[(i * 2)] = util.wrap(this.positions[i * 2], 0, this.width);
-
-			this.positions[(i * 2) + 1] = util.wrap(this.positions[(i * 2) + 1], 0, this.height);
-		}
-
-	}
-
-	getCount() {
-		return this.count;
-	}
-
-	getPositions() {
-		return this.positions;
-	}
-
-	getColours() {
-		return this.colours;
-	}
-
+    gl.flush();
 }
 
 function main() {
 
-	const canvas = document.getElementById('canvas');
+    const canvas = document.getElementById('canvas');
 
-	const gl = canvas.getContext('webgl');
+    const gl = canvas.getContext('webgl');
 
-	if (!gl) {
-		throw 'No WebGL';
-	}
+    if (!gl) {
+        throw 'No WebGL';
+    }
 
-	if (!gl.getExtension('OES_texture_float')) {
-		throw 'No OES_texture_float';
-	}
+    if (!gl.getExtension('OES_texture_float')) {
+        throw 'No OES_texture_float';
+    }
 
-	const width = canvas.width = window.innerWidth;
+    const width = canvas.width = window.innerWidth;
 
-	const height = canvas.height = window.innerHeight;
+    const height = canvas.height = window.innerHeight;
 
-	const particleCount = 50000;
+    const program = util.getProgram(gl, "vertex-shader", "fragment-shader");
 
-	const particles = new Particles(particleCount, width, height);
+    const particles = 1024;
 
-	const physics = new Physics(-9.6, 0.5);
+    const renderInfo = {
 
-	const attractors = new Attractors(100, width, height);
+        program: program,
 
-	const renderContext = {
-		width: width,
+        width: width,
 
-		height: height,
+        height: height,
 
-		particles: particleCount,
+        particles: particles,
 
-		program: util.getProgram(gl, 'vertex-shader', 'fragment-shader'),
+        buffers: {
 
-		buffers: {
-			position: gl.createBuffer(),
+            index: generateParticleIndex(gl, particles)
+        },
 
-			colour: gl.createBuffer()
-		}
-	};
+        attributes: {
 
-	gl.disable(gl.DEPTH_TEST);
+            index: gl.getAttribLocation(program, "a_index")
+        },
 
-	gl.enable(gl.BLEND);
+        textures: {
 
-	gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+            particles: makeDataTexture(
+                gl,
+                Math.sqrt(particles),
+                generateParticleData(particles, width, height)
+            )
+        },
 
-	gl.clearColor(0, 0, 0, 1);
+        uniforms: {
 
-	gl.viewport(0, 0, width, height);
+            resolution: gl.getUniformLocation(program, "u_resolution"),
 
-	update(particles, physics, attractors, gl, renderContext);
+            particles: gl.getUniformLocation(program, "u_particles")
+        }
+    };
 
+    gl.disable(gl.DEPTH_TEST);
+
+    gl.enable(gl.BLEND);
+
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+
+    gl.clearColor(0, 0, 0, 1);
+
+    gl.viewport(0, 0, width, height);
+
+    render(gl, renderInfo);
 }
 
-function render(particles, gl, renderContext) {
-
-	gl.clear(gl.COLOR_BUFFER_BIT);
-
-	gl.useProgram(renderContext.program);
-
-	const resolutionUniform = gl.getUniformLocation(renderContext.program, 'u_resolution');
-
-	gl.uniform2f(resolutionUniform, renderContext.width, renderContext.height);
-
-	const positionAttribute = gl.getAttribLocation(renderContext.program, 'a_position');
-
-	gl.enableVertexAttribArray(positionAttribute);
-
-	gl.bindBuffer(gl.ARRAY_BUFFER, renderContext.buffers.position);
-
-	gl.bufferData(gl.ARRAY_BUFFER, particles.getPositions(), gl.DYNAMIC_DRAW);
-
-	gl.vertexAttribPointer(positionAttribute, 2, gl.FLOAT, false, 0, 0);
-
-	const colourAttribute = gl.getAttribLocation(renderContext.program, 'a_colour');
-
-	gl.enableVertexAttribArray(colourAttribute);
-
-	gl.bindBuffer(gl.ARRAY_BUFFER, renderContext.buffers.colour);
-
-	gl.bufferData(gl.ARRAY_BUFFER, particles.getColours(), gl.DYNAMIC_DRAW);
-
-	gl.vertexAttribPointer(colourAttribute, 4, gl.FLOAT, false, 0, 0);
-
-	gl.drawArrays(gl.POINTS, 0, renderContext.particles);
-}
-
-function update(particles, physics, attractors, gl, renderContext) {
-
-	particles.update(physics, attractors);
-
-	render(particles, gl, renderContext);
-
-	gl.flush();
-
-	requestAnimationFrame(function () {
-		update(particles, physics, attractors, gl, renderContext);
-	});
-}
 
 window.onload = main;

@@ -27,21 +27,19 @@
 
 		uniform vec2 u_resolution;
 
-		attribute vec2 a_position;
+		uniform sampler2D u_particles;
 
-		attribute vec4 a_colour;
-
-		varying vec4 v_colour;
+		attribute vec2 a_index;
 
 		void main() {
 
-			v_colour = a_colour;
+			vec4 particle = texture2D(u_particles, a_index);
 
-			vec2 position = (2.0 * (a_position / u_resolution)) - 1.0;
+			vec2 position = (2.0 * (particle.xy / u_resolution)) - 1.0;
 
 			gl_Position = vec4(position, 0, 1.0);
 
-			gl_PointSize = 2.0;
+			gl_PointSize = particle.z;
 
 		}
 
@@ -51,10 +49,8 @@
 
 		precision mediump float;
 
-		varying vec4 v_colour;
-
 		void main() {
-			gl_FragColor = v_colour;
+			gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
 		}
 
 	</script>
