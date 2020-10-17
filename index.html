@@ -29,6 +29,8 @@
 
 		uniform sampler2D u_particles;
 
+		uniform sampler2D u_colours;
+
 		attribute vec2 a_index;
 
 		void main() {
@@ -49,8 +51,10 @@
 
 		precision mediump float;
 
+		uniform sampler2D u_texture;
+
 		void main() {
-			gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+			gl_FragColor = texture2D(u_texture, gl_PointCoord);
 		}
 
 	</script>

@@ -1,5 +1,9 @@
 const util = {};
 
+util.random = function(min, max) {
+	return min + (Math.random() * (max - min));
+}
+
 util.getShader = function (gl, elementId, type) {
 
 	const shaderSource = document.getElementById(elementId);

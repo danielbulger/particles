@@ -33,6 +33,32 @@ function makeDataTexture(gl, dimension, data) {
     return texture;
 }
 
+async function makeTexture(gl, url) {
+    return new Promise(function (resolve, reject) {
+
+        const image = new Image();
+
+        image.onload = function () {
+
+            const texture = gl.createTexture();
+
+            gl.bindTexture(gl.TEXTURE_2D, texture);
+
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+
+            gl.generateMipmap(gl.TEXTURE_2D);
+
+            resolve(texture);
+        }
+
+        image.onerror = function () {
+            reject();
+        }
+
+        image.src = url;
+    });
+}
+
 /**
  * Generates a WebGLBuffer that contains the index positions of the particles.
  * These indexes are used to lookup the particle data within the textures.
@@ -87,7 +113,7 @@ function generateParticleData(count, width, height) {
         buffer[block + 1] = Math.random() * height;
 
         // The particle point size
-        buffer[block + 2] = 2 ** (Math.floor(Math.random() * 3) + 1);
+        buffer[block + 2] = 2 ** (Math.floor(Math.random() * 4) + 1);
 
         // dummy for now
         buffer[block + 3] = 0;
@@ -127,12 +153,18 @@ function render(gl, renderInfo) {
 
     gl.uniform1i(renderInfo.uniforms.particles, 0);
 
+    gl.activeTexture(gl.TEXTURE1);
+
+    gl.bindTexture(gl.TEXTURE_2D, renderInfo.textures.texture);
+
+    gl.uniform1i(renderInfo.uniforms.texture, 1);
+
     gl.drawArrays(gl.POINTS, 0, renderInfo.particles);
 
     gl.flush();
 }
 
-function main() {
+async function main() {
 
     const canvas = document.getElementById('canvas');
 
@@ -150,7 +182,9 @@ function main() {
 
     const height = canvas.height = window.innerHeight;
 
-    const program = util.getProgram(gl, "vertex-shader", "fragment-shader");
+    const texture = await makeTexture(gl, 'assets/circle_05.png');
+
+    const program = util.getProgram(gl, 'vertex-shader', 'fragment-shader');
 
     const particles = 1024;
 
@@ -171,7 +205,7 @@ function main() {
 
         attributes: {
 
-            index: gl.getAttribLocation(program, "a_index")
+            index: gl.getAttribLocation(program, 'a_index')
         },
 
         textures: {
@@ -180,14 +214,18 @@ function main() {
                 gl,
                 Math.sqrt(particles),
                 generateParticleData(particles, width, height)
-            )
+            ),
+
+            texture: texture
         },
 
         uniforms: {
 
-            resolution: gl.getUniformLocation(program, "u_resolution"),
+            resolution: gl.getUniformLocation(program, 'u_resolution'),
 
-            particles: gl.getUniformLocation(program, "u_particles")
+            particles: gl.getUniformLocation(program, 'u_particles'),
+
+            texture: gl.getUniformLocation(program, 'u_texture')
         }
     };
 
