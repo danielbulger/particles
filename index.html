@@ -7,15 +7,15 @@
 	<title>Particles</title>
 
 	<style>
-		html, body, canvas {
-			position: absolute;
-			top: 0;
-			left: 0;
-			padding: 0;
-			margin: 0;
-			width: 100vw;
-			height: 100vh;
-		}
+        html, body, canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            padding: 0;
+            margin: 0;
+            width: 100vw;
+            height: 100vh;
+        }
 	</style>
 </head>
 
@@ -23,7 +23,7 @@
 
 	<canvas id="canvas"></canvas>
 
-	<script type="shader/x-vertex" id="vertex-shader">
+	<script type="shader/x-vertex" id="render-vertex-shader">
 
 		uniform vec2 u_resolution;
 
@@ -39,15 +39,15 @@
 
 			vec2 position = (2.0 * (particle.xy / u_resolution)) - 1.0;
 
-			gl_Position = vec4(position, 0, 1.0);
+			gl_Position = vec4(position, 1.0, 1.0);
 
-			gl_PointSize = particle.z;
+			gl_PointSize = 8.0;
 
 		}
 
 	</script>
 
-	<script type="shader/x-fragment" id="fragment-shader">
+	<script type="shader/x-fragment" id="render-fragment-shader">
 
 		precision mediump float;
 
@@ -59,9 +59,7 @@
 
 	</script>
 
-	<script src="util.js"></script>
-
-	<script src="main.js"></script>
+	<script src="main.js" type="module"></script>
 
 </body>
 
