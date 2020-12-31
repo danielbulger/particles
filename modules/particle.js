@@ -1,6 +1,6 @@
 import * as GLUtil from './gl.js';
 
-export const NUM_PARTICLES = 1024 ** 2;
+export const NUM_PARTICLES = 2048 ** 2;
 
 export const NUM_PARTICLES_SQRT = Math.sqrt(NUM_PARTICLES);
 
