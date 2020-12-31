@@ -1,6 +1,6 @@
 import * as GLUtil from './gl.js';
 
-export const NUM_PARTICLES = 1024;
+export const NUM_PARTICLES = 1024 ** 2;
 
 export const NUM_PARTICLES_SQRT = Math.sqrt(NUM_PARTICLES);
 
@@ -22,7 +22,7 @@ export function generateParticleIndex(gl) {
 
 	const data = new Float32Array(NUM_PARTICLES * 2);
 
-	const rowLength = Math.sqrt(NUM_PARTICLES);
+	const rowLength = NUM_PARTICLES_SQRT;
 
 	const step = 1 / rowLength;
 
@@ -62,6 +62,12 @@ export function generateParticleData(width, height) {
 
 		// The particle y position
 		buffer[block + 1] = Math.random() * height;
+
+		// The particle x velocity
+		buffer[block + 2] = 0;
+
+		// The particle y velocity
+		buffer[block + 3] = 0;
 	}
 
 	return buffer;

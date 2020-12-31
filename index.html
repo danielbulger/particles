@@ -7,7 +7,7 @@
 	<title>Particles</title>
 
 	<style>
-        html, body, canvas {
+        body {
             position: absolute;
             top: 0;
             left: 0;
@@ -23,13 +23,97 @@
 
 	<canvas id="canvas"></canvas>
 
+	<script type="shader/x-vertex" id="physics-vertex-shader">
+
+		attribute vec2 a_positions;
+
+		void main() {
+			gl_Position = vec4(a_positions, 0.0, 1.0);
+		}
+	</script>
+
+	<script type="shader/x-fragment" id="physics-fragment-shader">
+		precision mediump float;
+
+		uniform vec2 u_blackhole1;
+		uniform vec2 u_blackhole2;
+		uniform vec2 u_blackhole3;
+
+		uniform vec2 u_resolution;
+		uniform sampler2D u_particles;
+
+		float gravity = 2500.0;
+		float delta = 0.005;
+		float mass = 1.0 / 0.1;
+
+		void main() {
+
+			vec4 data = texture2D(u_particles, gl_FragCoord.xy / u_resolution);
+
+			vec2 position = data.xy;
+
+			vec2 velocity = data.zw;
+
+			vec2 dist = u_blackhole1 - position;
+
+			vec2 force = (u_blackhole1 / length(dist)) * normalize(dist);
+
+			dist = u_blackhole2 - position;
+
+			force += (u_blackhole2 / length(dist)) * normalize(dist);
+
+			dist = u_blackhole3 - position;
+
+			force += (u_blackhole3 / length(dist)) * normalize(dist);
+
+			vec2 a = force * mass;
+
+			position = vec2(
+				position + velocity * delta + 0.5 * a * delta * delta
+			);
+
+			velocity = vec2(
+				velocity + a * delta
+			);
+
+			gl_FragColor = vec4(
+				position,
+				velocity
+			);
+		}
+	</script>
+
+	<script type="shader/x-vertex" id="copy-vertex-shader">
+
+		attribute vec2 a_positions;
+		varying vec2 v_position;
+
+		void main() {
+			v_position = (a_positions + 1.0) / 2.0;
+			gl_Position = vec4(a_positions, 1.0, 1.0);
+		}
+
+	</script>
+
+	<script type="shader/x-fragment" id="copy-fragment-shader">
+
+		precision mediump float;
+
+		uniform sampler2D u_particles;
+		varying vec2 v_position;
+
+		void main() {
+
+			gl_FragColor = texture2D(u_particles, v_position);
+		}
+
+	</script>
+
 	<script type="shader/x-vertex" id="render-vertex-shader">
 
 		uniform vec2 u_resolution;
 
 		uniform sampler2D u_particles;
-
-		uniform sampler2D u_colours;
 
 		attribute vec2 a_index;
 
@@ -42,7 +126,6 @@
 			gl_Position = vec4(position, 1.0, 1.0);
 
 			gl_PointSize = 8.0;
-
 		}
 
 	</script>

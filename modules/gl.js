@@ -1,3 +1,18 @@
+export function getQuadBuffer(gl) {
+
+	const buffer = gl.createBuffer();
+
+	gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+	gl.bufferData(
+		gl.ARRAY_BUFFER,
+		new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]),
+		gl.STATIC_DRAW
+	);
+	gl.bindBuffer(gl.ARRAY_BUFFER, null);
+
+	return buffer;
+}
+
 /**
  * Make a texture from the given data.
  * @param gl The WebGL context
@@ -27,6 +42,8 @@ export function makeDataTexture(gl, dimension, data) {
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 
+	gl.bindTexture(gl.TEXTURE_2D, null);
+
 	return texture;
 }
 
@@ -42,6 +59,8 @@ export async function makeTexture(gl, url) {
 			gl.bindTexture(gl.TEXTURE_2D, texture);
 			gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
 			gl.generateMipmap(gl.TEXTURE_2D);
+
+			gl.bindTexture(gl.TEXTURE_2D, null);
 
 			resolve(texture);
 		}
@@ -118,6 +137,9 @@ export function makeGL(canvasId) {
 	if (!gl.getExtension('OES_texture_float')) {
 		throw 'No OES_texture_float';
 	}
+
+	gl.getExtension('EXT_color_buffer_float');
+	gl.getExtension('EXT_float_blend');
 
 	const width = canvas.width = window.innerWidth;
 
