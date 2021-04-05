@@ -21,17 +21,13 @@ export function generateParticleDataTexture(gl, width, height) {
 export function generateParticleIndex(gl) {
 
 	const data = new Float32Array(NUM_PARTICLES * 2);
-
 	const rowLength = NUM_PARTICLES_SQRT;
-
 	const step = 1 / rowLength;
 
 	for (let i = 0; i < NUM_PARTICLES; ++i) {
 
 		const block = i * 2;
-
 		data[block] = step * Math.floor(i % rowLength);
-
 		data[block + 1] = step * (Math.floor(i / rowLength));
 	}
 
@@ -59,13 +55,10 @@ export function generateParticleData(width, height) {
 
 		// The particle x position
 		buffer[block] = Math.random() * width;
-
 		// The particle y position
 		buffer[block + 1] = Math.random() * height;
-
 		// The particle x velocity
 		buffer[block + 2] = 0;
-
 		// The particle y velocity
 		buffer[block + 3] = 0;
 	}

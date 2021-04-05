@@ -4,9 +4,7 @@ import * as Particle from './modules/particle.js';
 async function getRenderProgram(gl, width, height, particleIndex, particleData) {
 
 	const texture = await GLUtil.makeTexture(gl, 'assets/circle_05.png');
-
 	const program = GLUtil.getProgram(gl, 'render-vertex-shader', 'render-fragment-shader');
-
 	const indexAttr = gl.getAttribLocation(program, 'a_index');
 
 	gl.enableVertexAttribArray(indexAttr);
@@ -145,7 +143,6 @@ function copy(gl, copyProgram, renderProgram, physicsProgram) {
 	gl.flush();
 
 	gl.bindTexture(gl.TEXTURE_2D, null);
-
 	gl.bindBuffer(gl.ARRAY_BUFFER, null);
 
 	gl.framebufferTexture2D(
@@ -202,7 +199,6 @@ function update(gl, physicsProgram) {
 	gl.flush();
 
 	gl.bindTexture(gl.TEXTURE_2D, null);
-
 	gl.bindBuffer(gl.ARRAY_BUFFER, null);
 
 	gl.framebufferTexture2D(
@@ -220,9 +216,7 @@ function render(gl, renderProgram) {
 	gl.viewport(0, 0, renderProgram.width, renderProgram.height);
 
 	gl.enable(gl.BLEND);
-
 	gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
-
 	gl.clear(gl.COLOR_BUFFER_BIT);
 
 	gl.useProgram(renderProgram.program);
@@ -254,7 +248,6 @@ function render(gl, renderProgram) {
 	gl.flush();
 
 	gl.bindBuffer(gl.ARRAY_BUFFER, null);
-
 	gl.activeTexture(gl.TEXTURE0);
 	gl.bindTexture(gl.TEXTURE_2D, null);
 
@@ -265,9 +258,7 @@ function render(gl, renderProgram) {
 async function main() {
 
 	const [gl, width, height] = GLUtil.makeGL('canvas');
-
 	const particleIndex = Particle.generateParticleIndex(gl);
-
 	const particleData = Particle.generateParticleDataTexture(gl, width, height);
 
 	const blackhole = Array(
@@ -292,22 +283,17 @@ async function main() {
 	);
 
 	const physicsProgram = getPhysicsProgram(gl, particleData, blackhole);
-
 	const copyProgram = getCopyProgram(gl);
 
 	gl.disable(gl.DEPTH_TEST);
-
 	gl.clearColor(0, 0, 0, 1);
-
 	renderLoop(gl, renderProgram, physicsProgram, copyProgram);
 }
 
 function renderLoop(gl, renderProgram, physicsProgram, copyProgram) {
 
 	update(gl, physicsProgram);
-
 	copy(gl, copyProgram, renderProgram, physicsProgram);
-
 	render(gl, renderProgram);
 
 	gl.finish();

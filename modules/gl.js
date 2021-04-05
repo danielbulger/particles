@@ -77,11 +77,9 @@ export async function makeTexture(gl, url) {
 export function getShader(gl, shaderId, type) {
 
 	const shaderSource = document.getElementById(shaderId).text;
-
 	const shader = gl.createShader(type);
 
 	gl.shaderSource(shader, shaderSource);
-
 	gl.compileShader(shader);
 
 	if (gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
@@ -89,24 +87,18 @@ export function getShader(gl, shaderId, type) {
 	}
 
 	const message = gl.getShaderInfoLog(shader);
-
 	gl.deleteShader(shader);
-
 	throw message;
 }
 
 export function getProgram(gl, vertexShaderId, fragmentShaderId) {
 
 	const vertexShader = getShader(gl, vertexShaderId, gl.VERTEX_SHADER);
-
 	const fragmentShader = getShader(gl, fragmentShaderId, gl.FRAGMENT_SHADER);
-
 	const program = gl.createProgram();
 
 	gl.attachShader(program, vertexShader);
-
 	gl.attachShader(program, fragmentShader);
-
 	gl.linkProgram(program);
 
 	if (gl.getProgramParameter(program, gl.LINK_STATUS)) {
@@ -116,9 +108,7 @@ export function getProgram(gl, vertexShaderId, fragmentShaderId) {
 	const message = gl.getProgramInfoLog(program);
 
 	gl.deleteShader(vertexShader);
-
 	gl.deleteShader(fragmentShader);
-
 	gl.deleteProgram(program);
 
 	throw message;
@@ -142,7 +132,6 @@ export function makeGL(canvasId) {
 	gl.getExtension('EXT_float_blend');
 
 	const width = canvas.width = window.innerWidth;
-
 	const height = canvas.height = window.innerHeight;
 
 	return [gl, width, height];
